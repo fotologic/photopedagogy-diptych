@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoPedagogy Diptych</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --pink: #CB216E;
+  --text: #1c1c1a;
+  --muted: #9a9690;
+  --border: #e4e0da;
+}
+html, body { height: 100%; background: #fff; color: var(--text); font-family: 'Quicksand', sans-serif; }
+
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* HEADER */
+header { padding: 22px 36px; flex-shrink: 0; }
+.wordmark a {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  text-decoration: none; color: var(--text); transition: color 0.2s;
+}
+.wordmark a span { font-weight: 500; color: var(--muted); transition: color 0.2s; }
+.wordmark a:hover, .wordmark a:hover span { color: var(--pink); }
+.wordmark .tag {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.14em; color: var(--muted);
+  margin-left: 10px; text-transform: uppercase;
+}
+
+/* MAIN */
+main {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 20px 48px 28px; position: relative;
+}
+
+/* DIPTYCH */
+.diptych {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 48px; width: 100%; max-width: 1160px; align-items: center;
+}
+.panel img {
+  width: 100%; height: auto; max-height: 64vh;
+  display: block; object-fit: contain;
+  opacity: 0; transition: opacity 0.5s ease;
+}
+main.clickable { cursor: pointer; }
+.panel img.visible { opacity: 1; }
+.panel img.idle { opacity: 0.5; }
+
+
+/* TC OVERLAY */
+.overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(720px, 90%);
+  background: rgba(255, 246, 243, 0.95);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06);
+  padding: 52px 60px;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.overlay-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: #666;
+  text-align: left;
+}
+
+/* WORD BUTTONS */
+.word-area {
+  flex-shrink: 0; padding: 20px 36px 28px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 8px;
+}
+.word-btn {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: lowercase;
+  padding: 9px 24px; background: none;
+  border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer;
+  border-radius: 20px; transition: all 0.18s;
+  user-select: none;
+}
+.word-btn:hover { border-color: var(--pink); color: var(--pink); }
+.word-btn.active { border-color: var(--pink); background: var(--pink); color: #fff; }
+.word-btn.loading { opacity: 0.4; cursor: default; pointer-events: none; }
+
+/* MOBILE */
+@media (max-width: 700px) {
+  header { padding: 18px 20px; }
+  main { padding: 16px 20px 20px; }
+  .diptych { grid-template-columns: 1fr; gap: 24px; }
+  .panel img { max-height: 50vw; }
+  .overlay { padding: 36px 28px; }
+  .overlay-text { font-size: 14px; }
+  .word-area { padding: 16px 20px 24px; gap: 6px; }
+  .word-btn { font-size: 11px; padding: 8px 14px; }
+}
+
+/* ── HEADER LAYOUT ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── INFO BUTTON ── */
+.info-btn {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 20px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.18s;
+}
+.info-btn:hover { border-color: var(--pink); color: var(--pink); }
+
+/* ── INFO OVERLAY ── */
+.info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,246,243,0.97);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+.info-overlay.open { opacity: 1; pointer-events: all; }
+
+.info-panel {
+  position: relative;
+  max-width: 620px;
+  width: calc(100% - 48px);
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  padding: 60px 68px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+}
+
+.info-close {
+  position: absolute;
+  top: 20px; right: 24px;
+  background: none; border: none;
+  font-size: 26px; font-weight: 300;
+  color: var(--muted); cursor: pointer;
+  line-height: 1; padding: 4px 8px;
+  transition: color 0.2s;
+}
+.info-close:hover { color: var(--pink); }
+
+.info-title {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--pink); margin-bottom: 28px;
+}
+
+.info-content p {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px; font-weight: 400;
+  line-height: 1.75; color: var(--text);
+  margin-bottom: 20px;
+}
+
+.info-content a {
+  color: var(--pink);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(203,33,110,0.25);
+  transition: border-color 0.2s;
+}
+.info-content a:hover { border-color: var(--pink); }
+
+.info-sign-off {
+  margin-top: 28px !important;
+  font-style: italic;
+  color: var(--muted) !important;
+}
+
+@media (max-width: 700px) {
+  .info-panel { padding: 44px 28px 36px; }
+  .info-content p { font-size: 15px; }
+}
+
+/* ── ARROW HINT ── */
+.arrow-container {
+  flex-shrink: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#arrowHint {
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#arrowHint.visible {
+  opacity: 1;
+  animation: arrowBounce 1.4s ease-in-out infinite;
+}
+@keyframes arrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(7px); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="wordmark">
+      <a href="https://www.photopedagogy.com" target="_blank">Photo<span>Pedagogy</span></a>
+      <span class="tag">Diptych</span>
+    </div>
+    <button class="info-btn" onclick="toggleInfo()" aria-label="About this app">Info</button>
+  </header>
+
+  <main id="mainArea">
+    <div class="diptych">
+      <div class="panel"><img id="imgL" src="" alt=""></div>
+      <div class="panel"><img id="imgR" src="" alt=""></div>
+    </div>
+    <div class="overlay" id="overlay">
+      <div class="overlay-text" id="overlayText"></div>
+    </div>
+  </main>
+
+  <div class="arrow-container">
+    <div id="arrowHint">
+      <svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="#c8c4be" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="14" y1="4" x2="14" y2="22"/>
+        <polyline points="7,16 14,23 21,16"/>
+      </svg>
+    </div>
+  </div>
+  <div class="word-area" id="wordArea"></div>
+
+  <!-- Info overlay -->
+  <div class="info-overlay" id="infoOverlay" aria-hidden="true">
+    <div class="info-panel">
+      <button class="info-close" onclick="toggleInfo()" aria-label="Close">&times;</button>
+      <div class="info-content">
+        <h1 class="info-title">Info</h1>
+        <p>The images in this app are photographs of photographs from books in my library, made fairly casually with an iPhone. Every image is, in some sense, already a copy of a copy, stripped of its original context and set adrift, in the spirit of <a href="https://www.metmuseum.org/art/collection/search/267214" target="_blank" rel="noopener">Sherrie Levine</a> and <a href="https://www.guggenheim.org/artwork/26669" target="_blank" rel="noopener">Jiro Takamatsu</a>. It’s also how images circulate now: restless, detached, endlessly recombined.</p>
+        <p>The photographs are presented without captions. We’re interested in what the pictures have to say to each other.</p>
+        <p>The ten words at the bottom indicate the Threshold Concepts that underpin <a href="https://www.photopedagogy.com" target="_blank" rel="noopener">PhotoPedagogy</a>, a free resource for photography teachers and students that <a href="https://www.artpedagogy.com" target="_blank" rel="noopener">Chris Francis</a> and I have been building for over ten years. Threshold Concepts are the big ideas that, once understood, change how you see a subject. They are, by definition, troublesome. The words are like signs on doors. You don’t have to open them.</p>
+        <p>Click a word to generate a pair of images. Click anywhere on the images to reveal a short text; a frame for thinking, not a set of instructions. Or ignore the text entirely and simply look at the randomly generated diptychs. Take your time. Look carefully.</p>
+        <p class="info-sign-off">— Jon Nicholls</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const IMAGES = [
+  'IMG_7113.jpg',
+  'IMG_7114.jpg',
+  'IMG_7117.jpg',
+  'IMG_7118.jpg',
+  'IMG_7119.jpg',
+  'IMG_7120.jpg',
+  'IMG_7121.jpg',
+  'IMG_7123.jpg',
+  'IMG_7125.jpg',
+  'IMG_7126.jpg',
+  'IMG_7127.jpg',
+  'IMG_7128.jpg',
+  'IMG_7129.jpg',
+  'IMG_7130.jpg',
+  'IMG_7131.jpg',
+  'IMG_7133.jpg',
+  'IMG_7134.jpg',
+  'IMG_7135.jpg',
+  'IMG_7136.jpg',
+  'IMG_7137.jpg',
+  'IMG_7139.jpg',
+  'IMG_7140.jpg',
+  'IMG_7141.jpg',
+  'IMG_7142.jpg',
+  'IMG_7143.jpg',
+  'IMG_7144.jpg',
+  'IMG_7145.jpg',
+  'IMG_7146.jpg',
+  'IMG_7147.jpg',
+  'IMG_7148.jpg',
+  'IMG_7149.jpg',
+  'IMG_7150.jpg',
+  'IMG_7151.jpg',
+  'IMG_7153.jpg',
+  'IMG_7155.jpg',
+  'IMG_7156.jpg',
+  'IMG_7157.jpg',
+  'IMG_7158.jpg',
+  'IMG_7159.jpg',
+  'IMG_7160.jpg',
+  'IMG_7161.jpg',
+  'IMG_7162.jpg',
+  'IMG_7163.jpg',
+  'IMG_7164.jpg',
+  'IMG_7165.jpg',
+  'IMG_7166.jpg',
+  'IMG_7167.jpg',
+  'IMG_7168.jpg',
+  'IMG_7169.jpg',
+  'IMG_7170.jpg',
+  'IMG_7171.jpg',
+  'IMG_7172.jpg',
+  'IMG_7173.jpg',
+  'IMG_7175.jpg',
+  'IMG_7176.jpg',
+  'IMG_7177.jpg',
+  'IMG_7178.jpg',
+  'IMG_7179.jpg',
+  'IMG_7180.jpg',
+  'IMG_7181.jpg',
+  'IMG_7182.jpg',
+  'IMG_7183.jpg',
+  'IMG_7185.jpg',
+  'IMG_7186.jpg',
+  'IMG_7188.jpg',
+  'IMG_7189.jpg',
+  'IMG_7190.jpg',
+  'IMG_7191.jpg',
+  'IMG_7192.jpg',
+  'IMG_7193.jpg',
+  'IMG_7195.jpg',
+  'IMG_7196.jpg',
+  'IMG_7197.jpg',
+  'IMG_7198.jpg',
+  'IMG_7199.jpg',
+  'IMG_7200.jpg',
+  'IMG_7201.jpg',
+  'IMG_7202.jpg',
+  'IMG_7203.jpg',
+  'IMG_7204.jpg',
+  'IMG_7205.jpg',
+  'IMG_7206.jpg',
+  'IMG_7208.jpg',
+  'IMG_7209.jpg',
+  'IMG_7210.jpg',
+  'IMG_7211.jpg',
+  'IMG_7212.jpg',
+  'IMG_7213.jpg',
+  'IMG_7214.jpg',
+  'IMG_7215.jpg',
+  'IMG_7216.jpg',
+  'IMG_7218.jpg',
+  'IMG_7219.jpg',
+  'IMG_7220.jpg',
+  'IMG_7221.jpg',
+  'IMG_7222.jpg',
+  'IMG_7223.jpg',
+  'IMG_7224.jpg',
+  'IMG_7225.jpg',
+  'IMG_7226.jpg',
+  'IMG_7227.jpg',
+  'IMG_7228.jpg',
+  'IMG_7229.jpg',
+  'IMG_7230.jpg',
+  'IMG_7231.jpg',
+  'IMG_7232.jpg',
+  'IMG_7234.jpg',
+  'IMG_7235.jpg',
+  'IMG_7236.jpg',
+  'IMG_7237.jpg',
+  'IMG_7238.jpg',
+  'IMG_7239.jpg',
+  'IMG_7240.jpg',
+  'IMG_7241.jpg',
+  'IMG_7242.jpg',
+  'IMG_7243.jpg',
+  'IMG_7244.jpg',
+  'IMG_7245.jpg',
+  'IMG_7246.jpg',
+  'IMG_7247.jpg',
+  'IMG_7248.jpg',
+  'IMG_7249.jpg',
+  'IMG_7250.jpg',
+  'IMG_7251.jpg',
+  'IMG_7252.jpg',
+  'IMG_7253.jpg',
+  'IMG_7254.jpg',
+  'IMG_7255.jpg',
+  'IMG_7257.jpg',
+  'IMG_7258.jpg',
+  'IMG_7259.jpg',
+  'IMG_7260.jpg',
+  'IMG_7261.jpg',
+  'IMG_7262.jpg',
+  'IMG_7263.jpg',
+  'IMG_7264.jpg',
+  'IMG_7265.jpg',
+  'IMG_7266.jpg',
+  'IMG_7267.jpg',
+  'IMG_7269.jpg',
+  'IMG_7270.jpg',
+  'IMG_7272.jpg',
+  'IMG_7273.jpg',
+  'IMG_7274.jpg',
+  'IMG_7276.jpg',
+  'IMG_7277.jpg',
+  'IMG_7278.jpg',
+  'IMG_7279.jpg',
+  'IMG_7280.jpg',
+  'IMG_7281.jpg',
+  'IMG_7282.jpg',
+  'IMG_7283.jpg',
+  'IMG_7284.jpg',
+  'IMG_7286.jpg',
+  'IMG_7287.jpg',
+  'IMG_7289.jpg',
+  'IMG_7290.jpg',
+  'IMG_7291.jpg',
+  'IMG_7292.jpg',
+  'IMG_7293.jpg',
+  'IMG_7294.jpg',
+  'IMG_7295.jpg',
+  'IMG_7296.jpg',
+  'IMG_7297.jpg',
+  'IMG_7298.jpg',
+  'IMG_7300.jpg',
+  'IMG_7302.jpg',
+  'IMG_7303.jpg',
+  'IMG_7304.jpg',
+  'IMG_7305.jpg',
+  'IMG_7306.jpg',
+  'IMG_7307.jpg',
+  'IMG_7308.jpg',
+  'IMG_7309.jpg',
+  'IMG_7310.jpg',
+  'IMG_7311.jpg',
+  'IMG_7313.jpg',
+  'IMG_7315.jpg',
+  'IMG_7316.jpg',
+  'IMG_7317.jpg',
+  'IMG_7318.jpg',
+  'IMG_7319.jpg',
+  'IMG_7320.jpg',
+  'IMG_7321.jpg',
+  'IMG_7323.jpg',
+  'IMG_7324.jpg',
+  'IMG_7325.jpg',
+  'IMG_7326.jpg',
+  'IMG_7328.jpg',
+  'IMG_7329.jpg',
+  'IMG_7330.jpg',
+  'IMG_7331.jpg',
+  'IMG_7333.jpg',
+  'IMG_7334.jpg',
+  'IMG_7335.jpg',
+  'IMG_7336.jpg',
+  'IMG_7337.jpg',
+  'IMG_7338.jpg',
+  'IMG_7339.jpg',
+  'IMG_7340.jpg',
+  'IMG_7341.jpg',
+  'IMG_7342.jpg',
+  'IMG_7343.jpg',
+  'IMG_7344.jpg',
+  'IMG_7345.jpg',
+  'IMG_7346.jpg',
+  'IMG_7347.jpg',
+  'IMG_7348.jpg',
+  'IMG_7349.jpg',
+  'IMG_7350.jpg',
+  'IMG_7351.jpg',
+  'IMG_7352.jpg',
+  'IMG_7354.jpg',
+  'IMG_7355.jpg',
+  'IMG_7356.jpg',
+  'IMG_7357.jpg',
+  'IMG_7358.jpg',
+  'IMG_7359.jpg',
+  'IMG_7360.jpg',
+  'IMG_7361.jpg',
+  'IMG_7362.jpg',
+  'IMG_7363.jpg',
+  'IMG_7364.jpg',
+  'IMG_7365.jpg',
+  'IMG_7366.jpg',
+  'IMG_7368.jpg',
+  'IMG_7369.jpg',
+  'IMG_7370.jpg',
+  'IMG_7372.jpg',
+  'IMG_7373.jpg',
+  'IMG_7374.jpg',
+];
+
+const TC = {
+  genre:       'Photography has many genres, some old, some borrowed, some new. Photographs are clothed in ‘rules’ and conventions that shape our expectations. Some are inherited from painting e.g. portraiture or landscape. Some have been created by photography e.g. photojournalism. They help to define how we look. Some photographers have fun playing with these expectations.',
+  light:       'Photography is the capturing of light; a camera is optional. Photography is, literally, writing with light. Understanding how light behaves, how it falls, reflects, reveals, conceals, is not just technical knowledge but a way of seeing.',
+  purpose:     'Photography is a hybrid kind of picture making, democratic and diverse. There’s a lot more to the story of photography than making art. Photographs serve a host of different functions from capturing smiles at family events to analysing a crime scene. Photography has always been a popular form of image-making but, nowadays, it’s almost ubiquitous.',
+  selection:   'Photography is an art of selection rather than invention. Unlike painting or drawing, which start with blankness, photography starts with excess. The photographer’s task is not to add but to select from the chaos of the visible.',
+  abstraction: 'Photographs are abstractions shaped by technology. Photographs look like the things they depict, but they are not those things. They are two-dimensional, static, bounded, and silent. The apparent transparency conceals how much they leave out. The seeming truth is always partial.',
+  chance:      'Photographs rely on chance, more or less. Reality contains more information than you can control. It is not arranged for your benefit. And, just when you think you have everything organised, something enters the frame that you didn’t expect. You can combat chance, tolerate it or embrace it. To some extent, all photographs are the result of chance processes.',
+  context:     'Photographs are not fixed in meaning; context is everything. Photographs are wild, indeterminate, multi-layered and unpredictable things. The meaning of a photograph is never fixed. It depends on context, caption, sequence, the viewer’s knowledge or sensitivity (and many more factors). Photographs resist the control of their makers.',
+  form:        'Photographs have their own visual language and ‘grammar’. What’s in the frame implies what’s outside of it. Every photograph represents choices, of moment, angle, distance and timing. Those choices could have been made differently.',
+  power:       'Photographs are not neutral; they are susceptible to the abuse of power. The camera is not innocent. Photography has been used to classify, surveil, objectify and control. Understanding this history is part of understanding the medium.',
+  time:        'Photographs warp our sense of time; they remind us of things lost. Photographs have a special connection to what was once in front of the camera. Every photograph is a memento mori, a reminder that what the camera captured is already gone.',
+};
+
+const HISTORY_SIZE = 20;
+let activeWord = null;
+let hasImages = false;
+let overlayVisible = false;
+let isLoading = false;
+
+function loadHistory(key) {
+  try { return JSON.parse(sessionStorage.getItem(key) || '[]'); } catch(e) { return []; }
+}
+function saveHistory(key, arr) {
+  try { sessionStorage.setItem(key, JSON.stringify(arr)); } catch(e) {}
+}
+function pickRandom(storageKey) {
+  const history = loadHistory(storageKey);
+  const histSet = new Set(history);
+  const available = IMAGES.map((_,i) => i).filter(i => !histSet.has(i));
+  const idx = available.length > 0
+    ? available[Math.floor(Math.random() * available.length)]
+    : Math.floor(Math.random() * IMAGES.length);
+  history.push(idx);
+  if (history.length > HISTORY_SIZE) history.shift();
+  saveHistory(storageKey, history);
+  return IMAGES[idx];
+}
+
+// Build buttons
+const wordArea = document.getElementById('wordArea');
+Object.keys(TC).forEach(word => {
+  const btn = document.createElement('button');
+  btn.className = 'word-btn';
+  btn.textContent = word;
+  btn.id = 'btn-' + word;
+  btn.onclick = () => handleClick(word);
+  wordArea.appendChild(btn);
+});
+
+function activateIdle() {
+  // Bring idle images to full opacity without generating new ones
+  ['L','R'].forEach(s => {
+    const img = document.getElementById('img' + s);
+    img.classList.remove('idle');
+    img.classList.add('visible');
+  });
+  hasImages = true;
+  document.getElementById('mainArea').classList.add('clickable');
+}
+
+function handleClick(word) {
+  if (isLoading) return;
+
+  const isNewWord = word !== activeWord;
+  activeWord = word;
+
+  document.querySelectorAll('.word-btn').forEach(b =>
+    b.classList.toggle('active', b.id === 'btn-' + word));
+
+  if (idleActive) {
+    // First ever click — activate the idle pair
+    idleActive = false;
+    hideArrow();
+    setOverlay(false);
+    activateIdle();
+    return;
+  }
+
+  if (isNewWord) {
+    // Different word after idle dismissed — generate fresh pair
+    setOverlay(false);
+    generate();
+    return;
+  }
+
+  // Same word clicked again — generate new pair
+  setOverlay(false);
+  generate();
+}
+
+function setOverlay(show) {
+  overlayVisible = show;
+  if (show) {
+    document.getElementById('overlayText').textContent = TC[activeWord];
+    document.getElementById('overlay').classList.add('visible');
+  } else {
+    document.getElementById('overlay').classList.remove('visible');
+  }
+}
+
+function generate() {
+  idleActive = false;
+  hideArrow();
+  isLoading = true;
+  hasImages = false;
+  setOverlay(false);
+  document.getElementById('mainArea').classList.remove('clickable');
+  document.querySelectorAll('.word-btn').forEach(b => b.classList.add('loading'));
+
+  ['L','R'].forEach(s => {
+    const img = document.getElementById('img'+s);
+    img.classList.remove('visible');
+    img.classList.remove('idle');
+  });
+
+  // Pick two distinct files
+  const fileL = pickRandom('dp_left');
+  let fileR;
+  do { fileR = pickRandom('dp_right'); } while (fileR === fileL);
+
+  let done = 0;
+  function onDone() {
+    if (++done === 2) {
+      isLoading = false;
+      hasImages = true;
+      document.getElementById('mainArea').classList.add('clickable');
+      document.querySelectorAll('.word-btn').forEach(b => b.classList.remove('loading'));
+
+    }
+  }
+
+  [{s:'L', f:fileL},{s:'R', f:fileR}].forEach(({s, f}) => {
+    const img = document.getElementById('img' + s);
+    const tmp = new Image();
+    tmp.onload = () => { img.src = tmp.src; requestAnimationFrame(() => img.classList.add('visible')); onDone(); };
+    tmp.onerror = () => onDone();
+    tmp.src = 'images/' + f;
+  });
+}
+
+document.getElementById('mainArea').addEventListener('click', e => {
+  // Don't interfere with word button clicks
+  if (e.target.closest('.word-area')) return;
+  if (isLoading) return;
+  if (!activeWord) return;
+  if (!hasImages) return;
+  if (!overlayVisible) {
+    setOverlay(true);
+  } else {
+    setOverlay(false);
+  }
+});
+
+// Load idle opening pair
+let idleActive = true;
+
+function showArrow() {
+  document.getElementById('arrowHint').classList.add('visible');
+}
+function hideArrow() {
+  document.getElementById('arrowHint').classList.remove('visible');
+}
+
+function loadIdle() {
+  const fileL = pickRandom('dp_left');
+  let fileR;
+  do { fileR = pickRandom('dp_right'); } while (fileR === fileL);
+  let loaded = 0;
+  ['L','R'].forEach(s => {
+    const file = s === 'L' ? fileL : fileR;
+    const img = document.getElementById('img' + s);
+    const tmp = new Image();
+    tmp.onload = () => {
+      if (!idleActive) return; // button already clicked — discard
+      img.src = tmp.src;
+      requestAnimationFrame(() => img.classList.add('idle'));
+      if (++loaded === 2) showArrow();
+    };
+    tmp.src = 'images/' + file;
+  });
+}
+loadIdle();
+
+function toggleInfo() {
+  const overlay = document.getElementById('infoOverlay');
+  const isOpen = overlay.classList.contains('open');
+  overlay.classList.toggle('open');
+  overlay.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+}
+document.getElementById('infoOverlay').addEventListener('click', function(e) {
+  if (e.target === this) toggleInfo();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('infoOverlay').classList.contains('open')) { toggleInfo(); return; }
+    setOverlay(false); return;
+  }
+  if ((e.key === ' ' || e.key === 'r') && activeWord && !isLoading) {
+    e.preventDefault(); generate();
+  }
+});
+</script>
+</body>
+</html>
